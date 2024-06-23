@@ -22,11 +22,11 @@ type ErrorExtended interface {
 }
 type OriginErr []error
 
-func (oe *OriginErr) Error() string {
+func (oe OriginErr) Error() string {
 	buff := bytes.NewBufferString("")
-	for i := 0; i < len(*oe); i++ {
+	for i := 0; i < len(oe); i++ {
 
-		buff.WriteString((*oe)[i].Error())
+		buff.WriteString((oe)[i].Error())
 		buff.WriteString("\n")
 	}
 	return strings.TrimSpace(buff.String())

@@ -3,21 +3,22 @@ package pkg
 import (
 	"encoding/json"
 	"errors"
+	"time"
 )
 
-func (oe *originalError) MarshalJSON() ([]byte, error) {
+func (oe OriginErr) MarshalJSON() ([]byte, error) {
 	var rawMessages []string
-	for _, err := range oe.Errors {
+	for _, err := range oe {
 		rawMessages = append(rawMessages, err.Error())
 	}
 	return json.Marshal(rawMessages)
 }
-func (oe *originalError) UnmarshalJSON(data []byte) error {
+func (oe OriginErr) UnmarshalJSON(data []byte) error {
 	var rawMessages []json.RawMessage
 	if err := json.Unmarshal(data, &rawMessages); err != nil {
 		var singleErr string
 		if err := json.Unmarshal(data, &singleErr); err == nil {
-			oe.Errors = []error{errors.New(singleErr)}
+			oe = OriginErr{errors.New(singleErr)}
 			return nil
 		}
 		return err
@@ -28,7 +29,7 @@ func (oe *originalError) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(rawMsg, &errStr); err != nil {
 			return err
 		}
-		oe.Errors = append(oe.Errors, errors.New(errStr))
+		oe = append(oe, errors.New(errStr))
 	}
 
 	return nil
@@ -40,8 +41,17 @@ func (ee *extenedError) UnmarshalJSON(data []byte) error {
 		ee.Message = simpleError
 		return nil
 	}
-
-	var aux extenedError
+	var aux struct {
+		Class      *string         `json:"class"`
+		Code       *string         `json:"code"`
+		Message    string          `json:"message"`
+		Origin     json.RawMessage `json:"original_error"`
+		SourceFile string          `json:"file"`
+		Line       int             `json:"line"`
+		FuncName   string          `json:"func_name"`
+		StackTrace []string        `json:"stack_trace"`
+		Timestamp  time.Time       `json:"timestamp"`
+	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
@@ -54,10 +64,10 @@ func (ee *extenedError) UnmarshalJSON(data []byte) error {
 	ee.StackTrace = aux.StackTrace
 	ee.Timestamp = aux.Timestamp
 
-	oError := &originalError{}
+	oError := &OriginErr{}
 
 	if err := json.Unmarshal(aux.Origin, oError); err == nil {
-		ee.OriginalErr = *oError
+		ee.Origin = *oError
 		return nil
 	}
 	return nil
