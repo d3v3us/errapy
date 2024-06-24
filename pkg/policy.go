@@ -1,5 +1,19 @@
 package pkg
 
+import (
+	"sync"
+)
+
+var once sync.Once
+
+func init() {
+	once.Do(func() {
+		_ = Policy(WithClassesRequired(false), WithCodesRequired(false))
+	})
+}
+
+var defaultPolicy *PolicyConfig
+
 type PolicyConfig struct {
 	ClassesRequired bool
 	CodesRequired   bool
@@ -27,12 +41,13 @@ func WithCodesRequired(codesRequired bool) PolicyOption {
 }
 
 func Policy(opts ...PolicyOption) *PolicyConfig {
-	defaultPolicy := &PolicyConfig{
+	p := &PolicyConfig{
 		ClassesRequired: false,
 		CodesRequired:   false,
 	}
 	for _, opt := range opts {
-		opt.apply(defaultPolicy)
+		opt.apply(p)
 	}
-	return defaultPolicy
+	defaultPolicy = p
+	return p
 }

@@ -141,6 +141,12 @@ func (e *ErrorBuilder) Build() ExtendedError {
 	e.SetTimestamp(time.Now())
 	if e.extendedError.IsCoded() {
 		e.SetMessage(fmt.Sprintf("%s: %s", *e.extendedError.Code, e.extendedError.Message))
+	} else if defaultPolicy.CodesRequired {
+		panic("error code not set")
+	}
+
+	if defaultPolicy.ClassesRequired && !e.extendedError.IsClassified() {
+		panic("error class not set")
 	}
 	if ok {
 		e.SetStackTrace(GetStackTrace(2))
