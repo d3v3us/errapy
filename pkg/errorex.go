@@ -7,9 +7,15 @@ import (
 	"time"
 )
 
-type ErrorExtended interface {
+type ErrorClass struct {
+	codePrefix string
+	code       int
+	name       string
+	codeRange  *[]int
+}
+type ExtendedError interface {
 	error
-	IsClassifed() bool
+	IsClassified() bool
 	IsCoded() bool
 	GetClass() string
 	GetOrigin() error
@@ -32,7 +38,7 @@ func (oe OriginErr) Error() string {
 	return strings.TrimSpace(buff.String())
 }
 
-type extenedError struct {
+type extendedError struct {
 	Code       *string   `json:"code"`
 	Class      *string   `json:"class"`
 	Message    string    `json:"message"`
@@ -44,117 +50,117 @@ type extenedError struct {
 	Timestamp  time.Time `json:"timestamp"`
 	Previous   error     `json:"-"`
 }
-type class struct {
-	codePrefix string
-	code       int
-	name       string
-	codeRange  *[]int
-}
 
-func (e *extenedError) IsClassifed() bool {
+func (e *extendedError) IsClassified() bool {
 	return e.Class != nil && *e.Class != ""
 }
-func (e *extenedError) IsCoded() bool {
+func (e *extendedError) IsCoded() bool {
 	return e.Code != nil && *e.Code != ""
 }
-func (e *extenedError) GetClass() string {
+func (e *extendedError) GetClass() string {
 	return *e.Class
 }
 
-func (e *extenedError) GetOrigin() error {
+func (e *extendedError) GetOrigin() error {
 	return e.Origin
 }
-func (e *extenedError) GetPrevious() error {
+func (e *extendedError) GetPrevious() error {
 	return e.Previous
 }
-func (e *extenedError) GetSourceFile() string {
+func (e *extendedError) GetSourceFile() string {
 	return e.SourceFile
 }
-func (e *extenedError) GetLine() int {
+func (e *extendedError) GetLine() int {
 	return e.Line
 }
-func (e *extenedError) GetFuncName() string {
+func (e *extendedError) GetFuncName() string {
 	return e.FuncName
 }
-func (e *extenedError) GetStackTrace() []string {
+func (e *extendedError) GetStackTrace() []string {
 	return e.StackTrace
 }
-func (e *extenedError) GetTime() string {
+func (e *extendedError) GetTime() string {
 	return e.Timestamp.Format(time.RFC3339)
 }
-func (e *extenedError) Error() string {
+func (e *extendedError) Error() string {
 	return e.Message
 }
 
-type errorExtendedBuilder struct {
-	*extenedError
+type ErrorBuilder struct {
+	extendedError *extendedError
 }
 
-func NewBuilder() *errorExtendedBuilder {
-	return &errorExtendedBuilder{extenedError: &extenedError{}}
+func NewBuilder() *ErrorBuilder {
+	return &ErrorBuilder{extendedError: &extendedError{}}
 }
 
-func (e *errorExtendedBuilder) SetClass(class string) *errorExtendedBuilder {
-	e.Class = &class
+func (e *ErrorBuilder) SetClass(class string) *ErrorBuilder {
+	e.extendedError.Class = &class
 	return e
 }
-func (e *errorExtendedBuilder) SetCode(code string) *errorExtendedBuilder {
-	e.Code = &code
+func (e *ErrorBuilder) SetCode(code string) *ErrorBuilder {
+	e.extendedError.Code = &code
 	return e
 }
-func (e *errorExtendedBuilder) SetMessage(message string) *errorExtendedBuilder {
-	e.Message = message
+func (e *ErrorBuilder) SetMessage(message string) *ErrorBuilder {
+	e.extendedError.Message = message
 	return e
 }
-func (e *errorExtendedBuilder) SetOrigin(origin error) *errorExtendedBuilder {
-	e.Origin = OriginErr{origin}
+func (e *ErrorBuilder) SetOrigin(origin error) *ErrorBuilder {
+	e.extendedError.Origin = OriginErr{origin}
 
 	return e
 }
-func (e *errorExtendedBuilder) SetPrevious(previous error) *errorExtendedBuilder {
-	e.Previous = previous
+func (e *ErrorBuilder) SetPrevious(previous error) *ErrorBuilder {
+	e.extendedError.Previous = previous
 	return e
 }
-func (e *errorExtendedBuilder) SetSourceFile(sourceFile string) *errorExtendedBuilder {
-	e.SourceFile = sourceFile
+func (e *ErrorBuilder) SetSourceFile(sourceFile string) *ErrorBuilder {
+	e.extendedError.SourceFile = sourceFile
 	return e
 }
-func (e *errorExtendedBuilder) SetLine(line int) *errorExtendedBuilder {
-	e.Line = line
+func (e *ErrorBuilder) SetLine(line int) *ErrorBuilder {
+	e.extendedError.Line = line
 	return e
 }
-func (e *errorExtendedBuilder) SetFuncName(funcName string) *errorExtendedBuilder {
-	e.FuncName = funcName
+func (e *ErrorBuilder) SetFuncName(funcName string) *ErrorBuilder {
+	e.extendedError.FuncName = funcName
 	return e
 }
-func (e *errorExtendedBuilder) SetStackTrace(stackTrace []string) *errorExtendedBuilder {
-	e.StackTrace = stackTrace
+func (e *ErrorBuilder) SetStackTrace(stackTrace []string) *ErrorBuilder {
+	e.extendedError.StackTrace = stackTrace
 	return e
 }
-func (e *errorExtendedBuilder) SetTimestamp(timestamp time.Time) *errorExtendedBuilder {
-	e.Timestamp = timestamp
+func (e *ErrorBuilder) SetTimestamp(timestamp time.Time) *ErrorBuilder {
+	e.extendedError.Timestamp = timestamp
 	return e
 }
 
-func (e *errorExtendedBuilder) Build() ErrorExtended {
+func (e *ErrorBuilder) Build() ExtendedError {
 	pc, file, line, ok := Caller(2)
 	e.SetTimestamp(time.Now())
+	if e.extendedError.IsCoded() {
+		e.SetMessage(fmt.Sprintf("%s: %s", *e.extendedError.Code, e.extendedError.Message))
+	}
 	if ok {
 		e.SetStackTrace(GetStackTrace(2))
 		e.SetSourceFile(file)
 		e.SetLine(line)
-		fn := FuncForPC(pc)
-		e.SetFuncName(fn.Name())
+		e.SetFuncName(FuncForPC(pc).Name())
 	}
-	return e.extenedError
+	return e.extendedError
 }
-func Class(name string, codeRange *[]int) *class {
-	return &class{
-		name:      name,
-		codeRange: codeRange}
+func Class(name string, codePrefix string, codeRange *[]int) *ErrorClass {
+	return &ErrorClass{
+		name:       name,
+		codePrefix: codePrefix,
+		codeRange:  codeRange}
 }
-func (c *class) nextCode() string {
+func (c *ErrorClass) nextCode() string {
 	if c.codeRange != nil {
+		if c.code == 0 {
+			c.code = (*c.codeRange)[0]
+		}
 		if c.code+1 >= (*c.codeRange)[1] {
 			panic("error code out of range")
 		}
@@ -164,25 +170,30 @@ func (c *class) nextCode() string {
 	return ""
 }
 
-func (c *class) New(msg string) error {
+func (c *ErrorClass) New(msg string) error {
 	return NewBuilder().SetClass(c.name).SetCode(c.nextCode()).SetMessage(msg).Build()
 }
 
-func (c *class) Newf(format string, args ...interface{}) error {
+func (c *ErrorClass) Newf(format string, args ...interface{}) error {
 	return NewBuilder().SetClass(c.name).SetCode(c.nextCode()).SetMessage(fmt.Sprintf(format, args...)).Build()
 }
 
+//goland:noinspection GoUnusedFunction
 func New(msg string) error {
 	return NewBuilder().SetMessage(msg).Build()
 }
+
+//goland:noinspection GoUnusedFunction
 func From(err error) error {
 	return NewBuilder().SetOrigin(err).SetMessage(err.Error()).Build()
 }
+
+//goland:noinspection GoUnusedFunction
 func Newf(format string, args ...interface{}) error {
 	return NewBuilder().SetMessage(fmt.Sprintf(format, args...)).Build()
 }
 
-func (c *class) Wrap(err error, msg string) error {
+func (c *ErrorClass) Wrap(err error, msg string) error {
 	return NewBuilder().
 		SetClass(c.name).
 		SetCode(c.nextCode()).
@@ -191,7 +202,7 @@ func (c *class) Wrap(err error, msg string) error {
 		Build()
 }
 
-func (c *class) Wrapf(err error, format string, args ...interface{}) error {
+func (c *ErrorClass) Wrapf(err error, format string, args ...interface{}) error {
 	return NewBuilder().
 		SetClass(c.name).
 		SetCode(c.nextCode()).

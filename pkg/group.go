@@ -17,7 +17,7 @@ type stateWriter struct {
 func Grouped(errs ...error) error {
 	var group Group
 	group.Add(errs...)
-	return group.Err()
+	return formattedGroup(group)
 }
 
 func (group *Group) Add(errs ...error) {
@@ -28,10 +28,12 @@ func (group *Group) Add(errs ...error) {
 	}
 }
 
-func (group Group) Err() error {
-	return formattedGroup(group)
+func (group Group) Error() string {
+	return formattedGroup(group).Error()
 }
-
+func (group Group) Format(f fmt.State, c rune) {
+	formattedGroup(group).Format(f, c)
+}
 func (sw stateWriter) Write(p []byte) (n int, err error) {
 	return sw.Writer.Write(p)
 }
@@ -42,7 +44,7 @@ func (group formattedGroup) Format(f fmt.State, c rune) {
 
 	delim := defaultDelim
 	if f.Flag(int('+')) {
-		io.WriteString(f, "group:\n--- ")
+		_, _ = io.WriteString(f, "group:\n--- ")
 		delim = newlineDelim
 	}
 
@@ -56,11 +58,11 @@ func (group formattedGroup) Format(f fmt.State, c rune) {
 		if formatter, ok := err.(fmt.Formatter); ok {
 			formatter.Format(sw, c)
 		} else {
-			fmt.Fprintf(sw, "%v", err)
+			_, _ = fmt.Fprintf(sw, "%v", err)
 		}
 	}
 
-	io.WriteString(f, buffer.String())
+	_, _ = io.WriteString(f, buffer.String())
 }
 
 func (group formattedGroup) Error() string { return fmt.Sprintf("%v", group) }

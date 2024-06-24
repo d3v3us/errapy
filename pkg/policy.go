@@ -27,12 +27,12 @@ func WithCodesRequired(codesRequired bool) PolicyOption {
 }
 
 func Policy(opts ...PolicyOption) *PolicyConfig {
-	policy := &PolicyConfig{
+	defaultPolicy := &PolicyConfig{
 		ClassesRequired: false,
 		CodesRequired:   false,
 	}
 	for _, opt := range opts {
-		opt.apply(policy)
+		opt.apply(defaultPolicy)
 	}
-	return policy
+	return defaultPolicy
 }

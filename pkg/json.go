@@ -35,10 +35,10 @@ func (oe OriginErr) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (ee *extenedError) UnmarshalJSON(data []byte) error {
+func (e *extendedError) UnmarshalJSON(data []byte) error {
 	var simpleError string
 	if err := json.Unmarshal(data, &simpleError); err == nil {
-		ee.Message = simpleError
+		e.Message = simpleError
 		return nil
 	}
 	var aux struct {
@@ -55,19 +55,19 @@ func (ee *extenedError) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	ee.Class = aux.Class
-	ee.Code = aux.Code
-	ee.Message = aux.Message
-	ee.SourceFile = aux.SourceFile
-	ee.Line = aux.Line
-	ee.FuncName = aux.FuncName
-	ee.StackTrace = aux.StackTrace
-	ee.Timestamp = aux.Timestamp
+	e.Class = aux.Class
+	e.Code = aux.Code
+	e.Message = aux.Message
+	e.SourceFile = aux.SourceFile
+	e.Line = aux.Line
+	e.FuncName = aux.FuncName
+	e.StackTrace = aux.StackTrace
+	e.Timestamp = aux.Timestamp
 
 	oError := &OriginErr{}
 
 	if err := json.Unmarshal(aux.Origin, oError); err == nil {
-		ee.Origin = *oError
+		e.Origin = *oError
 		return nil
 	}
 	return nil
